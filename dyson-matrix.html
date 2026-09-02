@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>戴森球计划 · 全部材料合成路径图</title>
+  <style>
+    :root {
+      --bg: #0a0e16; --card: #121826; --ink: #f3f6ff; --mute: #8b97b0; --line: #2a3550; --acc: #7dd3fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; color: var(--ink);
+      font-family: "SF Pro SC", "PingFang SC", "Noto Sans SC", sans-serif;
+      background:
+        radial-gradient(900px 480px at 8% -8%, #1a3a6a33, transparent 60%),
+        radial-gradient(700px 420px at 92% 0%, #3a1a5a22, transparent 55%),
+        var(--bg);
+    }
+    .app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+    aside {
+      border-right: 1px solid #223049; background: #0d1320cc; padding: 18px 14px;
+      display: flex; flex-direction: column; gap: 10px; height: 100vh; position: sticky; top: 0;
+    }
+    h1 { margin: 0; font-size: 16px; font-weight: 700; }
+    .sub { color: var(--mute); font-size: 12px; line-height: 1.45; }
+    input[type=search] {
+      width: 100%; background: #161d2c; border: 1px solid #2a3550; color: var(--ink);
+      border-radius: 10px; padding: 8px 10px; outline: none;
+    }
+    .cats { display: flex; flex-wrap: wrap; gap: 6px; }
+    .cat {
+      appearance: none; border: 0; background: #161d2c; color: #c8d0e0;
+      border-radius: 999px; padding: 4px 8px; font-size: 11px; cursor: pointer;
+    }
+    .cat.on { background: #d7ecff; color: #0b1020; font-weight: 700; }
+    .list { overflow: auto; flex: 1; padding-right: 4px; }
+    .item {
+      width: 100%; text-align: left; border: 0; background: transparent; color: #d5deef;
+      padding: 7px 8px; border-radius: 8px; cursor: pointer; font-size: 13px;
+      display: flex; justify-content: space-between; gap: 8px;
+    }
+    .item:hover { background: #1a2436; }
+    .item.on { background: #24344c; color: #fff; }
+    .item small { color: var(--mute); }
+    main { padding: 22px 24px 40px; min-width: 0; }
+    .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    .title { font-size: 22px; font-weight: 700; }
+    .meta { color: var(--mute); font-size: 13px; }
+    .meta b { color: var(--ink); }
+    .switch { display: flex; flex-wrap: wrap; gap: 6px; background: #161d2c; border-radius: 12px; padding: 4px; }
+    .switch button {
+      appearance: none; border: 0; background: transparent; color: var(--mute);
+      border-radius: 9px; padding: 6px 10px; cursor: pointer; font-size: 12px;
+    }
+    .switch button.on { background: #2a354c; color: var(--ink); }
+    .toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+    .board { background: var(--card); border: 1px solid #223049; border-radius: 20px; overflow: hidden; }
+    .graph-wrap { overflow: auto; padding: 8px; }
+    .graph-wrap.deep { max-height: min(72vh, 880px); }
+    .graph { position: relative; margin: 0 auto; }
+    .graph svg { position: absolute; inset: 0; }
+    .node {
+      position: absolute; width: 152px; height: 54px; padding: 8px 10px; border-radius: 14px;
+      background: #1a2234; border: 1px solid #31415f; cursor: pointer;
+    }
+    .node:hover { border-color: #7aa0d6; }
+    .node .name { font-size: 13px; font-weight: 650; }
+    .node .qty { font-size: 12px; color: var(--mute); margin-top: 2px; }
+    .node.out { background: linear-gradient(180deg,#2a2414,#1d1a12); border-color: #8b6a22; cursor: default; }
+    .node.out .name { color: #f3d27a; }
+    .node.out.dual { cursor: pointer; }
+    .node.by { border-style: dashed; opacity: .9; }
+    .node.raw { border-color: #155e75; }
+    .node.dual { box-shadow: inset 0 0 0 1px #3d6a94; }
+    .node .tag { font-size: 11px; color: var(--acc); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .graph.deep-nodes .node { height: 68px; }
+    .crumb { color: var(--mute); font-size: 12px; margin-bottom: 10px; }
+    .crumb button { appearance: none; border: 0; background: none; color: #9fd2ff; cursor: pointer; padding: 0; }
+    .hint { color: var(--mute); font-size: 12px; padding: 10px 14px 14px; border-top: 1px solid #223049; }
+    .empty { color: var(--mute); padding: 40px 16px; text-align: center; }
+    .line { border-top: 1px solid #223049; padding: 16px 16px 18px; }
+    .line h2 { margin: 0 0 4px; font-size: 15px; font-weight: 700; }
+    .line .assum { color: var(--mute); font-size: 12px; margin: 0 0 12px; line-height: 1.5; }
+    .line .kpis { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .kpi {
+      background: #161d2c; border: 1px solid #2a3550; border-radius: 12px;
+      padding: 8px 12px; min-width: 140px;
+    }
+    .kpi.wide { flex: 1 1 240px; }
+    .kpi .k { color: var(--mute); font-size: 11px; }
+    .kpi .v { font-size: 14px; font-weight: 650; margin-top: 2px; }
+    .kpi .v em { font-style: normal; color: var(--acc); }
+    .line-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .line-scroll { overflow: auto; max-height: min(70vh, 640px); border: 1px solid #223049; border-radius: 12px; }
+    .line-table th, .line-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid #223049; vertical-align: top; }
+    .line-table th { color: var(--mute); font-weight: 600; font-size: 11px; position: sticky; top: 0; background: #151c2b; }
+    .line-table tr:last-child td { border-bottom: 0; }
+    .line-table tr.root td { background: #241e12; color: #f3d27a; }
+    .line-table .mach { white-space: nowrap; color: #c5d4ea; }
+    .line-table .need { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .line-table .note { color: var(--mute); line-height: 1.45; }
+    .picks { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .picks button {
+      appearance: none; border: 0; background: #1c273a; color: #9fb0c8;
+      border-radius: 7px; padding: 2px 7px; font-size: 11px; cursor: pointer;
+    }
+    .picks button.on { background: #d7ecff; color: #0b1020; font-weight: 700; }
+    .sum { margin: 12px 0 8px; font-size: 13px; line-height: 1.55; }
+    .sum b { color: var(--acc); }
+    .raws { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+    .raw-chip {
+      background: #10242c; border: 1px solid #155e75; color: #b6e3ef;
+      border-radius: 999px; padding: 4px 10px; font-size: 12px;
+    }
+    .tips { margin: 0; padding-left: 18px; color: var(--mute); font-size: 12px; line-height: 1.55; }
+    .tips b { color: #d5deef; font-weight: 650; }
+    .warn { color: #f3d27a; font-size: 12px; margin: 8px 0; }
+    .target-row {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      margin: 0 0 10px;
+    }
+    .target-row label { font-size: 13px; font-weight: 650; }
+    .target-row input[type=number] {
+      width: 132px; background: #161d2c; border: 1px solid #3a4d6e;
+      color: var(--ink); border-radius: 10px; padding: 8px 10px;
+      font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
+    }
+    .target-row input[type=number]:focus { outline: none; border-color: var(--acc); }
+    .target-row .unit { color: var(--mute); font-size: 13px; }
+    .presets { display: flex; flex-wrap: wrap; gap: 4px; }
+    .presets button {
+      appearance: none; border: 0; background: #1c273a; color: #9fb0c8;
+      border-radius: 8px; padding: 5px 9px; font-size: 12px; cursor: pointer;
+    }
+    .presets button.on { background: #d7ecff; color: #0b1020; font-weight: 700; }
+    .target-eq { color: var(--mute); font-size: 12px; margin: 0 0 12px; }
+    @media (max-width: 860px) {
+      .app { grid-template-columns: 1fr; }
+      aside { height: auto; position: static; }
+      .list { max-height: 240px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>全部材料合成路径</h1>
+    <p class="sub">有机晶体可采矿；氢、重氢可轨道采集。种植晶体仅手动备注。</p>
+    <input id="q" type="search" placeholder="搜索材料…" />
+    <div class="cats" id="cats"></div>
+    <div class="list" id="list"></div>
+  </aside>
+  <main>
+    <div class="crumb" id="crumb"></div>
+    <div class="toolbar">
+      <div>
+        <div class="title" id="name">—</div>
+        <div class="meta" id="meta"></div>
+      </div>
+      <div class="toolbar-actions">
+        <div class="switch" id="paths"></div>
+        <div class="switch" id="graphMode"></div>
+      </div>
+    </div>
+    <div class="board">
+      <div class="graph-wrap" id="hold"></div>
+      <div class="hint" id="hint">点击左侧材料，或点击图中节点查看上游配方。</div>
+      <div class="line" id="line"></div>
+    </div>
+  </main>
+</div>
+<script>
+const DATA = {"categories": ["原料采集", "基础冶炼", "电子元件", "化工流体", "科研矩阵", "燃料", "电力设施", "工业建筑", "物流仓储", "戴森球", "战斗防御"], "raws": ["临界光子", "光栅石", "分形硅石", "刺笋结晶", "单极磁石", "原油", "可燃冰", "木材", "核心素", "植物燃料", "水", "煤矿", "物质重组器", "石矿", "硅基神经元", "能量碎片", "负熵奇点", "金伯利矿石", "钛石", "铁矿", "铜矿", "黑雾矩阵"], "items": [{"name": "铁块", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "铁矿", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "磁铁", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "铁矿", "q": 1.0}], "rate": 40.0, "out": 1.0, "sec": 1.5, "label": "合成"}]}, {"name": "铜块", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "铜矿", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "石材", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "石矿", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "高能石墨", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "煤矿", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "煤矿"}, {"ings": [{"n": "精炼油", "q": 1.0}, {"n": "氢", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "co": [{"n": "氢", "q": 3.0}], "label": "X射线裂解"}]}, {"name": "硅石", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "石矿", "q": 10.0}], "rate": 6.0, "out": 1.0, "sec": 10.0, "label": "合成"}]}, {"name": "晶格硅", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "高纯硅块", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "高纯硅"}, {"ings": [{"n": "分形硅石", "q": 1.0}], "rate": 40.0, "out": 2.0, "sec": 1.5, "label": "分形硅石"}]}, {"name": "玻璃", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "石矿", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "高纯硅块", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "硅石", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "金刚石", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "高能石墨", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "石墨合成"}, {"ings": [{"n": "金伯利矿石", "q": 1.0}], "rate": 40.0, "out": 2.0, "sec": 1.5, "label": "金伯利矿石"}]}, {"name": "钢材", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "铁块", "q": 3.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "钛块", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "钛石", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "钛合金", "cat": "基础冶炼", "recipes": [{"ings": [{"n": "钛块", "q": 4.0}, {"n": "钢材", "q": 4.0}, {"n": "硫酸", "q": 8.0}], "rate": 5.0, "out": 4.0, "sec": 12.0, "label": "合成"}]}, {"name": "齿轮", "cat": "电子元件", "recipes": [{"ings": [{"n": "铁块", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "磁线圈", "cat": "电子元件", "recipes": [{"ings": [{"n": "磁铁", "q": 2.0}, {"n": "铜块", "q": 1.0}], "rate": 60.0, "out": 2.0, "sec": 1.0, "label": "合成"}]}, {"name": "风力涡轮机", "cat": "电力设施", "recipes": [{"ings": [{"n": "铁块", "q": 6.0}, {"n": "齿轮", "q": 1.0}, {"n": "磁线圈", "q": 3.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "电力感应塔", "cat": "电力设施", "recipes": [{"ings": [{"n": "铁块", "q": 2.0}, {"n": "磁线圈", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "矩阵研究站", "cat": "工业建筑", "recipes": [{"ings": [{"n": "铁块", "q": 8.0}, {"n": "玻璃", "q": 4.0}, {"n": "电路板", "q": 4.0}, {"n": "磁线圈", "q": 4.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "棱镜", "cat": "电子元件", "recipes": [{"ings": [{"n": "玻璃", "q": 3.0}], "rate": 30.0, "out": 2.0, "sec": 2.0, "label": "合成"}]}, {"name": "电浆激发器", "cat": "电子元件", "recipes": [{"ings": [{"n": "磁线圈", "q": 4.0}, {"n": "棱镜", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "无线输电塔", "cat": "电力设施", "recipes": [{"ings": [{"n": "电力感应塔", "q": 1.0}, {"n": "电浆激发器", "q": 3.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "原油萃取站", "cat": "工业建筑", "recipes": [{"ings": [{"n": "钢材", "q": 12.0}, {"n": "石材", "q": 12.0}, {"n": "电路板", "q": 6.0}, {"n": "电浆激发器", "q": 4.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "原油精炼厂", "cat": "工业建筑", "recipes": [{"ings": [{"n": "钢材", "q": 10.0}, {"n": "石材", "q": 10.0}, {"n": "电路板", "q": 6.0}, {"n": "电浆激发器", "q": 6.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "液氢燃料棒", "cat": "燃料", "recipes": [{"ings": [{"n": "钛块", "q": 1.0}, {"n": "氢", "q": 10.0}], "rate": 10.0, "out": 2.0, "sec": 6.0, "label": "合成"}]}, {"name": "推进器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "钢材", "q": 2.0}, {"n": "铜块", "q": 3.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "加力推进器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "钛合金", "q": 5.0}, {"n": "电磁涡轮", "q": 5.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "化工厂", "cat": "工业建筑", "recipes": [{"ings": [{"n": "钢材", "q": 8.0}, {"n": "石材", "q": 8.0}, {"n": "玻璃", "q": 8.0}, {"n": "电路板", "q": 2.0}], "rate": 12.0, "out": 1.0, "sec": 5.0, "label": "合成"}]}, {"name": "钛晶石", "cat": "化工流体", "recipes": [{"ings": [{"n": "有机晶体", "q": 1.0}, {"n": "钛块", "q": 3.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "卡西米尔晶体", "cat": "化工流体", "recipes": [{"ings": [{"n": "钛晶石", "q": 1.0}, {"n": "石墨烯", "q": 2.0}, {"n": "氢", "q": 12.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "钛晶石"}, {"ings": [{"n": "光栅石", "q": 8.0}, {"n": "石墨烯", "q": 2.0}, {"n": "氢", "q": 12.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "光栅石"}]}, {"name": "钛化玻璃", "cat": "化工流体", "recipes": [{"ings": [{"n": "玻璃", "q": 2.0}, {"n": "钛块", "q": 2.0}, {"n": "水", "q": 2.0}], "rate": 12.0, "out": 2.0, "sec": 5.0, "label": "合成"}]}, {"name": "粒子宽带", "cat": "电子元件", "recipes": [{"ings": [{"n": "碳纳米管", "q": 2.0}, {"n": "晶格硅", "q": 2.0}, {"n": "塑料", "q": 1.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "位面过滤器", "cat": "电子元件", "recipes": [{"ings": [{"n": "卡西米尔晶体", "q": 1.0}, {"n": "钛化玻璃", "q": 2.0}], "rate": 5.0, "out": 1.0, "sec": 12.0, "label": "合成"}]}, {"name": "微型粒子对撞机", "cat": "工业建筑", "recipes": [{"ings": [{"n": "钛合金", "q": 20.0}, {"n": "框架材料", "q": 20.0}, {"n": "超级磁场环", "q": 25.0}, {"n": "石墨烯", "q": 10.0}, {"n": "处理器", "q": 8.0}], "rate": 4.0, "out": 1.0, "sec": 15.0, "label": "合成"}]}, {"name": "氘核燃料棒", "cat": "燃料", "recipes": [{"ings": [{"n": "钛合金", "q": 1.0}, {"n": "重氢", "q": 20.0}, {"n": "超级磁场环", "q": 1.0}], "rate": 5.0, "out": 2.0, "sec": 12.0, "label": "合成"}]}, {"name": "湮灭约束球", "cat": "燃料", "recipes": [{"ings": [{"n": "粒子容器", "q": 1.0}, {"n": "处理器", "q": 1.0}], "rate": 3.0, "out": 1.0, "sec": 20.0, "label": "合成"}]}, {"name": "人造恒星", "cat": "电力设施", "recipes": [{"ings": [{"n": "钛合金", "q": 20.0}, {"n": "框架材料", "q": 20.0}, {"n": "湮灭约束球", "q": 10.0}, {"n": "量子芯片", "q": 10.0}], "rate": 2.0, "out": 1.0, "sec": 30.0, "label": "合成"}]}, {"name": "反物质燃料棒", "cat": "燃料", "recipes": [{"ings": [{"n": "反物质", "q": 12.0}, {"n": "氢", "q": 12.0}, {"n": "湮灭约束球", "q": 1.0}, {"n": "钛合金", "q": 1.0}], "rate": 2.5, "out": 2.0, "sec": 24.0, "label": "合成"}]}, {"name": "制造台Mk.I", "cat": "工业建筑", "recipes": [{"ings": [{"n": "铁块", "q": 4.0}, {"n": "齿轮", "q": 8.0}, {"n": "电路板", "q": 4.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "制造台Mk.II", "cat": "工业建筑", "recipes": [{"ings": [{"n": "制造台Mk.I", "q": 1.0}, {"n": "石墨烯", "q": 8.0}, {"n": "处理器", "q": 4.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "制造台Mk.III", "cat": "工业建筑", "recipes": [{"ings": [{"n": "制造台Mk.II", "q": 1.0}, {"n": "粒子宽带", "q": 8.0}, {"n": "量子芯片", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "采矿机", "cat": "工业建筑", "recipes": [{"ings": [{"n": "铁块", "q": 4.0}, {"n": "电路板", "q": 2.0}, {"n": "磁线圈", "q": 2.0}, {"n": "齿轮", "q": 2.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "抽水站", "cat": "工业建筑", "recipes": [{"ings": [{"n": "铁块", "q": 8.0}, {"n": "石材", "q": 4.0}, {"n": "电动机", "q": 4.0}, {"n": "电路板", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "电路板", "cat": "电子元件", "recipes": [{"ings": [{"n": "铁块", "q": 2.0}, {"n": "铜块", "q": 1.0}], "rate": 60.0, "out": 2.0, "sec": 1.0, "label": "合成"}]}, {"name": "处理器", "cat": "电子元件", "recipes": [{"ings": [{"n": "电路板", "q": 2.0}, {"n": "微晶元件", "q": 2.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "量子芯片", "cat": "电子元件", "recipes": [{"ings": [{"n": "处理器", "q": 2.0}, {"n": "位面过滤器", "q": 2.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "微晶元件", "cat": "电子元件", "recipes": [{"ings": [{"n": "高纯硅块", "q": 2.0}, {"n": "铜块", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "有机晶体", "cat": "化工流体", "recipes": [{"ings": [{"n": "木材", "q": 20.0}, {"n": "植物燃料", "q": 30.0}, {"n": "水", "q": 10.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "种植"}, {"ings": [{"n": "塑料", "q": 2.0}, {"n": "精炼油", "q": 1.0}, {"n": "水", "q": 1.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "化工"}]}, {"name": "电弧熔炉", "cat": "工业建筑", "recipes": [{"ings": [{"n": "铁块", "q": 4.0}, {"n": "石材", "q": 2.0}, {"n": "电路板", "q": 4.0}, {"n": "磁线圈", "q": 2.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "火力发电厂", "cat": "电力设施", "recipes": [{"ings": [{"n": "铁块", "q": 10.0}, {"n": "石材", "q": 4.0}, {"n": "齿轮", "q": 4.0}, {"n": "磁线圈", "q": 4.0}], "rate": 12.0, "out": 1.0, "sec": 5.0, "label": "合成"}]}, {"name": "太阳能板", "cat": "电力设施", "recipes": [{"ings": [{"n": "铜块", "q": 10.0}, {"n": "高纯硅块", "q": 10.0}, {"n": "电路板", "q": 5.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "光子合并器", "cat": "电子元件", "recipes": [{"ings": [{"n": "棱镜", "q": 2.0}, {"n": "电路板", "q": 1.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "棱镜"}, {"ings": [{"n": "光栅石", "q": 1.0}, {"n": "电路板", "q": 1.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "光栅石"}]}, {"name": "太阳帆", "cat": "戴森球", "recipes": [{"ings": [{"n": "石墨烯", "q": 1.0}, {"n": "光子合并器", "q": 1.0}], "rate": 15.0, "out": 2.0, "sec": 4.0, "label": "合成"}]}, {"name": "电磁轨道弹射器", "cat": "戴森球", "recipes": [{"ings": [{"n": "钢材", "q": 20.0}, {"n": "齿轮", "q": 20.0}, {"n": "处理器", "q": 5.0}, {"n": "超级磁场环", "q": 10.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "射线接收站", "cat": "戴森球", "recipes": [{"ings": [{"n": "钢材", "q": 20.0}, {"n": "高纯硅块", "q": 20.0}, {"n": "光子合并器", "q": 10.0}, {"n": "处理器", "q": 5.0}, {"n": "超级磁场环", "q": 20.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "卫星配电站", "cat": "电力设施", "recipes": [{"ings": [{"n": "无线输电塔", "q": 1.0}, {"n": "超级磁场环", "q": 10.0}, {"n": "框架材料", "q": 2.0}], "rate": 12.0, "out": 1.0, "sec": 5.0, "label": "合成"}]}, {"name": "蓄电器", "cat": "电力设施", "recipes": [{"ings": [{"n": "铁块", "q": 6.0}, {"n": "超级磁场环", "q": 1.0}, {"n": "晶格硅", "q": 3.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "能量枢纽", "cat": "电力设施", "recipes": [{"ings": [{"n": "钛合金", "q": 40.0}, {"n": "钢材", "q": 40.0}, {"n": "处理器", "q": 40.0}, {"n": "粒子容器", "q": 8.0}], "rate": 4.0, "out": 1.0, "sec": 15.0, "label": "合成"}]}, {"name": "空间翘曲器", "cat": "科研矩阵", "recipes": [{"ings": [{"n": "引力透镜", "q": 1.0}], "rate": 6.0, "out": 1.0, "sec": 10.0, "label": "引力透镜"}, {"ings": [{"n": "引力矩阵", "q": 1.0}], "rate": 6.0, "out": 8.0, "sec": 10.0, "label": "引力矩阵"}]}, {"name": "框架材料", "cat": "戴森球", "recipes": [{"ings": [{"n": "碳纳米管", "q": 4.0}, {"n": "钛合金", "q": 1.0}, {"n": "高纯硅块", "q": 1.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "戴森球组件", "cat": "戴森球", "recipes": [{"ings": [{"n": "框架材料", "q": 3.0}, {"n": "太阳帆", "q": 3.0}, {"n": "处理器", "q": 3.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "垂直发射井", "cat": "戴森球", "recipes": [{"ings": [{"n": "钛合金", "q": 80.0}, {"n": "框架材料", "q": 30.0}, {"n": "引力透镜", "q": 20.0}, {"n": "量子芯片", "q": 10.0}], "rate": 2.0, "out": 1.0, "sec": 30.0, "label": "合成"}]}, {"name": "小型运载火箭", "cat": "戴森球", "recipes": [{"ings": [{"n": "戴森球组件", "q": 2.0}, {"n": "氘核燃料棒", "q": 4.0}, {"n": "量子芯片", "q": 2.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "传送带", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 2.0}, {"n": "齿轮", "q": 1.0}], "rate": 60.0, "out": 3.0, "sec": 1.0, "label": "合成"}]}, {"name": "分拣器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 1.0}, {"n": "电路板", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "小型储物仓", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 4.0}, {"n": "石材", "q": 4.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "四向分流器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 3.0}, {"n": "齿轮", "q": 2.0}, {"n": "电路板", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "高速分拣器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "分拣器", "q": 2.0}, {"n": "电动机", "q": 1.0}], "rate": 60.0, "out": 2.0, "sec": 1.0, "label": "合成"}]}, {"name": "高速传送带", "cat": "物流仓储", "recipes": [{"ings": [{"n": "传送带", "q": 3.0}, {"n": "电磁涡轮", "q": 1.0}], "rate": 60.0, "out": 3.0, "sec": 1.0, "label": "合成"}]}, {"name": "极速分拣器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "高速分拣器", "q": 2.0}, {"n": "电磁涡轮", "q": 1.0}], "rate": 60.0, "out": 2.0, "sec": 1.0, "label": "合成"}]}, {"name": "大型储物仓", "cat": "物流仓储", "recipes": [{"ings": [{"n": "钢材", "q": 8.0}, {"n": "石材", "q": 8.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "极速传送带", "cat": "物流仓储", "recipes": [{"ings": [{"n": "高速传送带", "q": 3.0}, {"n": "超级磁场环", "q": 1.0}, {"n": "石墨烯", "q": 1.0}], "rate": 60.0, "out": 3.0, "sec": 1.0, "label": "合成"}]}, {"name": "行星内物流运输站", "cat": "物流仓储", "recipes": [{"ings": [{"n": "钢材", "q": 40.0}, {"n": "钛块", "q": 40.0}, {"n": "处理器", "q": 40.0}, {"n": "粒子容器", "q": 20.0}], "rate": 3.0, "out": 1.0, "sec": 20.0, "label": "合成"}]}, {"name": "物流运输机", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 5.0}, {"n": "处理器", "q": 2.0}, {"n": "推进器", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "星际物流运输站", "cat": "物流仓储", "recipes": [{"ings": [{"n": "行星内物流运输站", "q": 1.0}, {"n": "钛合金", "q": 40.0}, {"n": "粒子容器", "q": 20.0}], "rate": 2.0, "out": 1.0, "sec": 30.0, "label": "合成"}]}, {"name": "星际物流运输船", "cat": "物流仓储", "recipes": [{"ings": [{"n": "钛合金", "q": 10.0}, {"n": "处理器", "q": 10.0}, {"n": "加力推进器", "q": 2.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "电动机", "cat": "电子元件", "recipes": [{"ings": [{"n": "铁块", "q": 2.0}, {"n": "齿轮", "q": 1.0}, {"n": "磁线圈", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "电磁涡轮", "cat": "电子元件", "recipes": [{"ings": [{"n": "电动机", "q": 2.0}, {"n": "磁线圈", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "粒子容器", "cat": "电子元件", "recipes": [{"ings": [{"n": "电磁涡轮", "q": 2.0}, {"n": "铜块", "q": 2.0}, {"n": "石墨烯", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "涡轮石墨烯"}, {"ings": [{"n": "单极磁石", "q": 10.0}, {"n": "铜块", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "单极磁石"}]}, {"name": "引力透镜", "cat": "科研矩阵", "recipes": [{"ings": [{"n": "金刚石", "q": 4.0}, {"n": "奇异物质", "q": 1.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "超级磁场环", "cat": "电子元件", "recipes": [{"ings": [{"n": "电磁涡轮", "q": 2.0}, {"n": "磁铁", "q": 3.0}, {"n": "高能石墨", "q": 1.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "增产剂Mk.I", "cat": "燃料", "recipes": [{"ings": [{"n": "煤矿", "q": 1.0}], "rate": 120.0, "out": 1.0, "sec": 0.5, "label": "合成"}]}, {"name": "增产剂Mk.II", "cat": "燃料", "recipes": [{"ings": [{"n": "增产剂Mk.I", "q": 2.0}, {"n": "金刚石", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "增产剂Mk.III", "cat": "燃料", "recipes": [{"ings": [{"n": "增产剂Mk.II", "q": 2.0}, {"n": "碳纳米管", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "喷涂机", "cat": "工业建筑", "recipes": [{"ings": [{"n": "钢材", "q": 4.0}, {"n": "电浆激发器", "q": 2.0}, {"n": "电路板", "q": 2.0}, {"n": "微晶元件", "q": 2.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "分馏塔", "cat": "工业建筑", "recipes": [{"ings": [{"n": "钢材", "q": 8.0}, {"n": "石材", "q": 4.0}, {"n": "玻璃", "q": 4.0}, {"n": "处理器", "q": 1.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "轨道采集器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "星际物流运输站", "q": 1.0}, {"n": "超级磁场环", "q": 50.0}, {"n": "加力推进器", "q": 20.0}, {"n": "蓄电器", "q": 20.0}], "rate": 2.0, "out": 1.0, "sec": 30.0, "label": "合成"}]}, {"name": "地基", "cat": "物流仓储", "recipes": [{"ings": [{"n": "石材", "q": 3.0}, {"n": "钢材", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "微型聚变发电站", "cat": "电力设施", "recipes": [{"ings": [{"n": "钛合金", "q": 12.0}, {"n": "超级磁场环", "q": 10.0}, {"n": "碳纳米管", "q": 8.0}, {"n": "处理器", "q": 4.0}], "rate": 6.0, "out": 1.0, "sec": 10.0, "label": "合成"}]}, {"name": "储液罐", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 8.0}, {"n": "石材", "q": 4.0}, {"n": "玻璃", "q": 4.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "位面熔炉", "cat": "工业建筑", "recipes": [{"ings": [{"n": "电弧熔炉", "q": 1.0}, {"n": "框架材料", "q": 5.0}, {"n": "位面过滤器", "q": 4.0}, {"n": "单极磁石", "q": 15.0}], "rate": 12.0, "out": 1.0, "sec": 5.0, "label": "合成"}]}, {"name": "流速监测器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 3.0}, {"n": "齿轮", "q": 2.0}, {"n": "玻璃", "q": 1.0}, {"n": "电路板", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "地热发电站", "cat": "电力设施", "recipes": [{"ings": [{"n": "钢材", "q": 15.0}, {"n": "铜块", "q": 20.0}, {"n": "光子合并器", "q": 4.0}, {"n": "超级磁场环", "q": 1.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "大型采矿机", "cat": "工业建筑", "recipes": [{"ings": [{"n": "钛合金", "q": 20.0}, {"n": "框架材料", "q": 10.0}, {"n": "超级磁场环", "q": 10.0}, {"n": "量子芯片", "q": 4.0}, {"n": "光栅石", "q": 40.0}], "rate": 3.0, "out": 1.0, "sec": 20.0, "label": "合成"}]}, {"name": "自动集装机", "cat": "物流仓储", "recipes": [{"ings": [{"n": "钢材", "q": 3.0}, {"n": "齿轮", "q": 4.0}, {"n": "超级磁场环", "q": 1.0}, {"n": "处理器", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "物流配送器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 8.0}, {"n": "电浆激发器", "q": 4.0}, {"n": "处理器", "q": 4.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "配送运输机", "cat": "物流仓储", "recipes": [{"ings": [{"n": "铁块", "q": 2.0}, {"n": "动力引擎", "q": 1.0}, {"n": "处理器", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "量子化工厂", "cat": "工业建筑", "recipes": [{"ings": [{"n": "化工厂", "q": 1.0}, {"n": "钛化玻璃", "q": 10.0}, {"n": "奇异物质", "q": 3.0}, {"n": "量子芯片", "q": 3.0}], "rate": 6.0, "out": 1.0, "sec": 10.0, "label": "合成"}]}, {"name": "高斯机枪塔", "cat": "战斗防御", "recipes": [{"ings": [{"n": "铁块", "q": 8.0}, {"n": "齿轮", "q": 8.0}, {"n": "电路板", "q": 2.0}, {"n": "磁线圈", "q": 4.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "高频激光塔", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钢材", "q": 9.0}, {"n": "电浆激发器", "q": 6.0}, {"n": "电路板", "q": 6.0}, {"n": "光子合并器", "q": 9.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "聚爆加农炮", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钢材", "q": 10.0}, {"n": "电动机", "q": 8.0}, {"n": "电路板", "q": 10.0}, {"n": "超级磁场环", "q": 2.0}], "rate": 12.0, "out": 1.0, "sec": 5.0, "label": "合成"}]}, {"name": "磁化电浆炮", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钛合金", "q": 20.0}, {"n": "钛化玻璃", "q": 10.0}, {"n": "超级磁场环", "q": 10.0}, {"n": "电浆激发器", "q": 5.0}, {"n": "处理器", "q": 5.0}], "rate": 6.0, "out": 1.0, "sec": 10.0, "label": "合成"}]}, {"name": "导弹防御塔", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钢材", "q": 8.0}, {"n": "电动机", "q": 6.0}, {"n": "电路板", "q": 12.0}, {"n": "动力引擎", "q": 6.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "干扰塔", "cat": "战斗防御", "recipes": [{"ings": [{"n": "铜块", "q": 12.0}, {"n": "电浆激发器", "q": 9.0}, {"n": "金刚石", "q": 6.0}, {"n": "处理器", "q": 3.0}], "rate": 12.0, "out": 1.0, "sec": 5.0, "label": "合成"}]}, {"name": "信号塔", "cat": "战斗防御", "recipes": [{"ings": [{"n": "无线输电塔", "q": 2.0}, {"n": "钢材", "q": 12.0}, {"n": "晶格硅", "q": 6.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "行星护盾发生器", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钢材", "q": 20.0}, {"n": "电磁涡轮", "q": 20.0}, {"n": "超级磁场环", "q": 5.0}, {"n": "粒子容器", "q": 5.0}], "rate": 6.0, "out": 1.0, "sec": 10.0, "label": "合成"}]}, {"name": "燃烧单元", "cat": "化工流体", "recipes": [{"ings": [{"n": "煤矿", "q": 3.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "机枪弹箱", "cat": "战斗防御", "recipes": [{"ings": [{"n": "铜块", "q": 3.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "钛化弹箱", "cat": "战斗防御", "recipes": [{"ings": [{"n": "机枪弹箱", "q": 1.0}, {"n": "钛块", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "超合金弹箱", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钛化弹箱", "q": 1.0}, {"n": "钛合金", "q": 1.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "炮弹组", "cat": "战斗防御", "recipes": [{"ings": [{"n": "铜块", "q": 9.0}, {"n": "燃烧单元", "q": 2.0}], "rate": 40.0, "out": 1.0, "sec": 1.5, "label": "合成"}]}, {"name": "高爆炮弹组", "cat": "战斗防御", "recipes": [{"ings": [{"n": "炮弹组", "q": 1.0}, {"n": "钛块", "q": 6.0}, {"n": "爆破单元", "q": 2.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "晶石炮弹组", "cat": "战斗防御", "recipes": [{"ings": [{"n": "高爆炮弹组", "q": 1.0}, {"n": "钛合金", "q": 3.0}, {"n": "晶石爆破单元", "q": 2.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "等离子胶囊", "cat": "战斗防御", "recipes": [{"ings": [{"n": "石墨烯", "q": 1.0}, {"n": "磁铁", "q": 2.0}, {"n": "重氢", "q": 10.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "反物质胶囊", "cat": "战斗防御", "recipes": [{"ings": [{"n": "等离子胶囊", "q": 1.0}, {"n": "粒子容器", "q": 1.0}, {"n": "氢", "q": 10.0}, {"n": "反物质", "q": 10.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "导弹组", "cat": "战斗防御", "recipes": [{"ings": [{"n": "铜块", "q": 6.0}, {"n": "电路板", "q": 3.0}, {"n": "燃烧单元", "q": 2.0}, {"n": "动力引擎", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "超音速导弹组", "cat": "战斗防御", "recipes": [{"ings": [{"n": "导弹组", "q": 2.0}, {"n": "处理器", "q": 4.0}, {"n": "爆破单元", "q": 4.0}, {"n": "推进器", "q": 2.0}], "rate": 15.0, "out": 2.0, "sec": 4.0, "label": "合成"}]}, {"name": "引力导弹组", "cat": "战斗防御", "recipes": [{"ings": [{"n": "超音速导弹组", "q": 3.0}, {"n": "晶石爆破单元", "q": 6.0}, {"n": "奇异物质", "q": 3.0}], "rate": 10.0, "out": 3.0, "sec": 6.0, "label": "合成"}]}, {"name": "原型机", "cat": "战斗防御", "recipes": [{"ings": [{"n": "铁块", "q": 3.0}, {"n": "动力引擎", "q": 1.0}, {"n": "电路板", "q": 2.0}, {"n": "电浆激发器", "q": 1.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "精准无人机", "cat": "战斗防御", "recipes": [{"ings": [{"n": "原型机", "q": 1.0}, {"n": "电磁涡轮", "q": 1.0}, {"n": "电路板", "q": 2.0}, {"n": "光子合并器", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "攻击无人机", "cat": "战斗防御", "recipes": [{"ings": [{"n": "原型机", "q": 1.0}, {"n": "电磁涡轮", "q": 1.0}, {"n": "处理器", "q": 1.0}, {"n": "粒子容器", "q": 1.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "护卫舰", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钛合金", "q": 5.0}, {"n": "加力推进器", "q": 1.0}, {"n": "处理器", "q": 2.0}, {"n": "粒子容器", "q": 3.0}], "rate": 12.0, "out": 1.0, "sec": 5.0, "label": "合成"}]}, {"name": "驱逐舰", "cat": "战斗防御", "recipes": [{"ings": [{"n": "框架材料", "q": 20.0}, {"n": "加力推进器", "q": 4.0}, {"n": "处理器", "q": 4.0}, {"n": "奇异物质", "q": 1.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "动力引擎", "cat": "电子元件", "recipes": [{"ings": [{"n": "磁线圈", "q": 1.0}, {"n": "铜块", "q": 2.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "战场分析基站", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钢材", "q": 12.0}, {"n": "电路板", "q": 18.0}, {"n": "微晶元件", "q": 6.0}, {"n": "动力引擎", "q": 12.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "自演化研究站", "cat": "工业建筑", "recipes": [{"ings": [{"n": "矩阵研究站", "q": 1.0}, {"n": "硅基神经元", "q": 10.0}, {"n": "黑雾矩阵", "q": 20.0}, {"n": "量子芯片", "q": 4.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "label": "合成"}]}, {"name": "重组式制造台", "cat": "工业建筑", "recipes": [{"ings": [{"n": "制造台Mk.III", "q": 1.0}, {"n": "物质重组器", "q": 10.0}, {"n": "能量碎片", "q": 30.0}, {"n": "量子芯片", "q": 4.0}], "rate": 12.0, "out": 1.0, "sec": 5.0, "label": "合成"}]}, {"name": "负熵熔炉", "cat": "工业建筑", "recipes": [{"ings": [{"n": "位面熔炉", "q": 1.0}, {"n": "负熵奇点", "q": 10.0}, {"n": "能量碎片", "q": 30.0}, {"n": "量子芯片", "q": 4.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "奇异湮灭燃料棒", "cat": "燃料", "recipes": [{"ings": [{"n": "反物质燃料棒", "q": 8.0}, {"n": "核心素", "q": 1.0}, {"n": "奇异物质", "q": 2.0}, {"n": "框架材料", "q": 1.0}], "rate": 1.875, "out": 1.0, "sec": 32.0, "label": "合成"}]}, {"name": "近程电浆塔", "cat": "战斗防御", "recipes": [{"ings": [{"n": "钢材", "q": 15.0}, {"n": "超级磁场环", "q": 5.0}, {"n": "电浆激发器", "q": 5.0}, {"n": "处理器", "q": 5.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "干扰胶囊", "cat": "战斗防御", "recipes": [{"ings": [{"n": "电磁涡轮", "q": 1.0}, {"n": "电浆激发器", "q": 1.0}, {"n": "氢", "q": 3.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "label": "合成"}]}, {"name": "压制胶囊", "cat": "战斗防御", "recipes": [{"ings": [{"n": "干扰胶囊", "q": 2.0}, {"n": "超级磁场环", "q": 1.0}, {"n": "钛化玻璃", "q": 2.0}], "rate": 7.5, "out": 2.0, "sec": 8.0, "label": "合成"}]}, {"name": "集装分拣器", "cat": "物流仓储", "recipes": [{"ings": [{"n": "极速分拣器", "q": 2.0}, {"n": "超级磁场环", "q": 1.0}, {"n": "处理器", "q": 1.0}], "rate": 60.0, "out": 1.0, "sec": 1.0, "label": "合成"}]}, {"name": "精炼油", "cat": "化工流体", "recipes": [{"ings": [{"n": "精炼油", "q": 2.0}, {"n": "氢", "q": 1.0}, {"n": "煤矿", "q": 1.0}], "rate": 15.0, "out": 3.0, "sec": 4.0, "label": "重整精炼"}, {"ings": [{"n": "原油", "q": 2.0}], "rate": 15.0, "out": 2.0, "sec": 4.0, "co": [{"n": "氢", "q": 1.0}], "label": "原油精炼"}]}, {"name": "塑料", "cat": "化工流体", "recipes": [{"ings": [{"n": "精炼油", "q": 2.0}, {"n": "高能石墨", "q": 1.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "硫酸", "cat": "化工流体", "recipes": [{"ings": [{"n": "精炼油", "q": 6.0}, {"n": "石矿", "q": 8.0}, {"n": "水", "q": 4.0}], "rate": 10.0, "out": 4.0, "sec": 6.0, "label": "合成"}]}, {"name": "石墨烯", "cat": "化工流体", "recipes": [{"ings": [{"n": "高能石墨", "q": 3.0}, {"n": "硫酸", "q": 1.0}], "rate": 20.0, "out": 2.0, "sec": 3.0, "label": "石墨+硫酸"}, {"ings": [{"n": "可燃冰", "q": 2.0}], "rate": 30.0, "out": 2.0, "sec": 2.0, "co": [{"n": "氢", "q": 1.0}], "label": "可燃冰"}]}, {"name": "碳纳米管", "cat": "化工流体", "recipes": [{"ings": [{"n": "石墨烯", "q": 3.0}, {"n": "钛块", "q": 1.0}], "rate": 15.0, "out": 2.0, "sec": 4.0, "label": "石墨烯"}, {"ings": [{"n": "刺笋结晶", "q": 6.0}], "rate": 15.0, "out": 2.0, "sec": 4.0, "label": "刺笋结晶"}]}, {"name": "爆破单元", "cat": "化工流体", "recipes": [{"ings": [{"n": "燃烧单元", "q": 2.0}, {"n": "塑料", "q": 2.0}, {"n": "硫酸", "q": 1.0}], "rate": 10.0, "out": 2.0, "sec": 6.0, "label": "合成"}]}, {"name": "晶石爆破单元", "cat": "化工流体", "recipes": [{"ings": [{"n": "爆破单元", "q": 8.0}, {"n": "卡西米尔晶体", "q": 1.0}, {"n": "晶格硅", "q": 8.0}], "rate": 2.5, "out": 8.0, "sec": 24.0, "label": "合成"}]}, {"name": "重氢", "cat": "化工流体", "recipes": [{"ings": [{"n": "氢", "q": 10.0}], "rate": 24.0, "out": 5.0, "sec": 2.5, "label": "合成"}]}, {"name": "奇异物质", "cat": "化工流体", "recipes": [{"ings": [{"n": "粒子容器", "q": 2.0}, {"n": "铁块", "q": 2.0}, {"n": "重氢", "q": 10.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "电磁矩阵", "cat": "科研矩阵", "recipes": [{"ings": [{"n": "磁线圈", "q": 1.0}, {"n": "电路板", "q": 1.0}], "rate": 20.0, "out": 1.0, "sec": 3.0, "label": "合成"}]}, {"name": "能量矩阵", "cat": "科研矩阵", "recipes": [{"ings": [{"n": "高能石墨", "q": 2.0}, {"n": "氢", "q": 2.0}], "rate": 10.0, "out": 1.0, "sec": 6.0, "label": "合成"}]}, {"name": "结构矩阵", "cat": "科研矩阵", "recipes": [{"ings": [{"n": "金刚石", "q": 1.0}, {"n": "钛晶石", "q": 1.0}], "rate": 7.5, "out": 1.0, "sec": 8.0, "label": "合成"}]}, {"name": "信息矩阵", "cat": "科研矩阵", "recipes": [{"ings": [{"n": "处理器", "q": 2.0}, {"n": "粒子宽带", "q": 1.0}], "rate": 6.0, "out": 1.0, "sec": 10.0, "label": "合成"}]}, {"name": "引力矩阵", "cat": "科研矩阵", "recipes": [{"ings": [{"n": "引力透镜", "q": 1.0}, {"n": "量子芯片", "q": 1.0}], "rate": 2.5, "out": 2.0, "sec": 24.0, "label": "合成"}]}, {"name": "宇宙矩阵", "cat": "科研矩阵", "recipes": [{"ings": [{"n": "电磁矩阵", "q": 1.0}, {"n": "能量矩阵", "q": 1.0}, {"n": "结构矩阵", "q": 1.0}, {"n": "信息矩阵", "q": 1.0}, {"n": "引力矩阵", "q": 1.0}, {"n": "反物质", "q": 1.0}], "rate": 4.0, "out": 1.0, "sec": 15.0, "label": "合成"}]}, {"name": "氢", "cat": "化工流体", "recipes": [{"ings": [{"n": "临界光子", "q": 2.0}], "rate": 30.0, "out": 2.0, "sec": 2.0, "co": [{"n": "反物质", "q": 2.0}], "label": "粒子对撞"}, {"ings": [{"n": "原油", "q": 2.0}], "rate": 15.0, "out": 1.0, "sec": 4.0, "co": [{"n": "精炼油", "q": 2.0}], "label": "原油精炼"}, {"ings": [{"n": "精炼油", "q": 1.0}, {"n": "氢", "q": 2.0}], "rate": 15.0, "out": 3.0, "sec": 4.0, "co": [{"n": "高能石墨", "q": 1.0}], "label": "X射线裂解"}, {"ings": [{"n": "可燃冰", "q": 2.0}], "rate": 30.0, "out": 1.0, "sec": 2.0, "co": [{"n": "石墨烯", "q": 2.0}], "label": "可燃冰"}]}, {"name": "反物质", "cat": "化工流体", "recipes": [{"ings": [{"n": "临界光子", "q": 2.0}], "rate": 30.0, "out": 2.0, "sec": 2.0, "co": [{"n": "氢", "q": 2.0}], "label": "合成"}]}], "rawCats": {"铁矿": "矿石", "铜矿": "矿石", "石矿": "矿石", "煤矿": "矿石", "钛石": "矿石", "金伯利矿石": "稀有", "分形硅石": "稀有", "刺笋结晶": "稀有", "光栅石": "稀有", "单极磁石": "稀有", "可燃冰": "稀有", "原油": "流体", "水": "流体", "木材": "有机", "植物燃料": "有机", "临界光子": "高维", "硅基神经元": "黑雾", "黑雾矩阵": "黑雾", "物质重组器": "黑雾", "能量碎片": "黑雾", "负熵奇点": "黑雾", "核心素": "黑雾"}}
+;
+
+const byName = Object.fromEntries(DATA.items.map(i => [i.name, i]));
+const rawSet = new Set(DATA.raws);
+const MANUAL_ONLY = {};
+const COLLECT = {
+  "有机晶体": { label: "矿物采集", cat: "矿石", mach: "采矿机", src: "矿脉 / 采矿机" },
+  "氢": { label: "轨道采集", cat: "流体", mach: "轨道采集器", src: "气态巨星 / 轨道采集器" },
+  "重氢": { label: "轨道采集", cat: "流体", mach: "轨道采集器", src: "气态巨星 / 轨道采集器" }
+};
+function collectOf(name) {
+  return COLLECT[name] || { label: "采集", cat: "原料", mach: "采集设备", src: "直接采集" };
+}
+function addCollectPath(name) {
+  const it = byName[name];
+  const info = COLLECT[name];
+  if (!it || !info) return;
+  if (it.recipes.some((r) => r.collect)) return;
+  const auto = it.recipes.find((r) => !r.collect) || it.recipes[0];
+  it.recipes = [
+    { label: info.label, collect: true, ings: [], rate: auto ? auto.rate * auto.out : 10, out: 1, sec: 0 },
+    ...it.recipes
+  ];
+  if (!DATA.raws.includes(name)) DATA.raws.push(name);
+  DATA.rawCats[name] = info.cat;
+  rawSet.add(name);
+}
+(function setupOrganicCrystal() {
+  const it = byName["有机晶体"];
+  if (!it) return;
+  const plant = it.recipes.find((r) => r.label === "种植");
+  const chem = it.recipes.find((r) => r.label === "化工") || it.recipes[it.recipes.length - 1];
+  if (plant) {
+    MANUAL_ONLY["有机晶体"] = {
+      label: "备注：手动种植（不能自动化）",
+      text: "木材×20 + 植物燃料×30 + 水×10 → 有机晶体×1（6 秒）。仅机甲手动，不计入产线。"
+    };
+  }
+  chem.label = "化工合成";
+  it.recipes = [chem];
+  addCollectPath("有机晶体");
+})();
+addCollectPath("氢");
+addCollectPath("重氢");
+const MATRIX = new Set(["电磁矩阵", "能量矩阵", "结构矩阵", "信息矩阵", "引力矩阵", "宇宙矩阵"]);
+const MACH_RANK = { "制造台": 0, "化工厂": 1, "原油精炼厂": 2, "微型粒子对撞机": 3, "矩阵研究站": 4, "电弧熔炉": 5 };
+const MACH_SHORT = { "电弧熔炉": "熔炉", "制造台": "制造台", "化工厂": "化工厂", "原油精炼厂": "精炼厂", "微型粒子对撞机": "对撞机", "矩阵研究站": "研究站" };
+let cat = "全部";
+let current = "电磁矩阵";
+let pathIdx = 0;
+let upstreamPick = {};
+let targetRate = 0;
+let targetDirty = false;
+let graphDeep = false;
+const hist = [];
+
+function fmt(q) {
+  return Number.isInteger(q) ? String(q) : String(q);
+}
+
+function fmtNum(q) {
+  if (!Number.isFinite(q)) return "—";
+  const r = Math.round(q * 1000) / 1000;
+  if (Math.abs(r - Math.round(r)) < 1e-9) return String(Math.round(r));
+  const s = r.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  return s;
+}
+
+function gcd(a, b) {
+  a = Math.abs(a); b = Math.abs(b);
+  while (b) { const t = a % b; a = b; b = t; }
+  return a || 1;
+}
+
+function toFrac(x) {
+  if (!Number.isFinite(x) || x < 1e-9) return "0";
+  if (Math.abs(x - 1) < 1e-6) return "满速";
+  let bestN = 1, bestD = 1, best = 1;
+  for (let d = 1; d <= 60; d++) {
+    const n = Math.round(x * d);
+    if (n <= 0) continue;
+    const err = Math.abs(x - n / d);
+    if (err < best - 1e-12 || (Math.abs(err - best) < 1e-12 && d < bestD)) {
+      best = err; bestN = n; bestD = d;
+    }
+  }
+  if (best > 5e-4) return (Math.round(x * 100) / 100) + "×";
+  const g = gcd(bestN, bestD);
+  bestN /= g; bestD /= g;
+  if (bestD === 1) return bestN === 1 ? "满速" : String(bestN);
+  return bestN + "/" + bestD;
+}
+
+function isDirectRaw(name) {
+  return name === "硅石" || !!COLLECT[name];
+}
+
+function isRawForLine(name) {
+  if (rawSet.has(name) && !byName[name]) return true;
+  if (name === "硅石" && current !== "硅石") return true;
+  const item = byName[name];
+  const rec = item ? pickRec(name) : null;
+  if (rec && rec.collect && !item.recipes.some((r) => !r.collect)) return true;
+  return false;
+}
+
+function manualNoteHtml(name) {
+  const n = MANUAL_ONLY[name];
+  return n ? `<p class="warn">${n.label}：${n.text}</p>` : "";
+}
+
+function recIndex(name) {
+  const item = byName[name];
+  if (!item) return 0;
+  if (name === current) return pathIdx;
+  if (upstreamPick[name] != null) return Math.min(upstreamPick[name], item.recipes.length - 1);
+  const idx = item.recipes.findIndex((r) => !r.ings.some((i) => i.n === name));
+  return idx >= 0 ? idx : 0;
+}
+
+function pickRec(name) {
+  const item = byName[name];
+  return item ? item.recipes[recIndex(name)] : null;
+}
+
+function machineOf(name, rec) {
+  const lab = rec.label || "";
+  if (rec.collect) return collectOf(name).mach;
+  if (/粒子对撞/.test(lab) || name === "反物质") return "微型粒子对撞机";
+  if (name === "重氢") return "微型粒子对撞机";
+  if (/原油精炼|重整精炼|X射线/.test(lab)) return "原油精炼厂";
+  if (MATRIX.has(name)) return "矩阵研究站";
+  const it = byName[name];
+  if (it && it.cat === "基础冶炼") return "电弧熔炉";
+  if (lab === "可燃冰") return "化工厂";
+  if (name === "有机晶体") return "化工厂";
+  if (["塑料", "硫酸", "石墨烯", "碳纳米管"].includes(name)) return "化工厂";
+  if (name === "氢" || name === "精炼油") return "原油精炼厂";
+  return "制造台";
+}
+
+function defaultTarget(name) {
+  const rec = pickRec(name || current);
+  if (!rec) return 0;
+  if (rec.collect) {
+    const item = byName[name || current];
+    const auto = item && item.recipes.find((r) => !r.collect);
+    return auto ? auto.rate * auto.out : rec.rate || 10;
+  }
+  return rec.rate * rec.out;
+}
+
+function activeTarget() {
+  if (targetDirty && Number.isFinite(targetRate) && targetRate > 0) return targetRate;
+  return defaultTarget();
+}
+
+function defaultPath(name) {
+  const item = byName[name];
+  if (!item) return 0;
+  const idx = item.recipes.findIndex((r) => !r.ings.some((i) => i.n === name));
+  return idx >= 0 ? idx : 0;
+}
+
+function machineInfo(n) {
+  if (n < 1e-9) return { count: 0, note: "—" };
+  const ceil = Math.max(1, Math.ceil(n - 1e-8));
+  const full = Math.floor(n + 1e-8);
+  const rem = n - full;
+  let note;
+  if (rem < 1e-6) note = Math.abs(n - 1) < 1e-6 ? "满速" : "全部满负荷";
+  else if (full === 0) note = "只需 " + toFrac(n) + " 负载";
+  else note = full + " 满 + 1 台 " + toFrac(rem);
+  return { count: ceil, note, n };
+}
+
+function expandLine(name, qty, isRoot, acc, depth) {
+  if (qty < 1e-12) return;
+  if (!isRoot && isRawForLine(name)) {
+    acc.raws[name] = (acc.raws[name] || 0) + qty;
+    acc.flows[name] = (acc.flows[name] || 0) + qty;
+    return;
+  }
+  const item = byName[name];
+  const rec = pickRec(name);
+  if (!item || !rec) {
+    acc.raws[name] = (acc.raws[name] || 0) + qty;
+    acc.flows[name] = (acc.flows[name] || 0) + qty;
+    return;
+  }
+  if (rec.collect) {
+    acc.raws[name] = (acc.raws[name] || 0) + qty;
+    acc.flows[name] = (acc.flows[name] || 0) + qty;
+    if (item.recipes.some((r) => !r.collect)) {
+      if (!acc.steps[name]) {
+        acc.steps[name] = { batches: 0, items: 0, rec, depth, order: acc.order++ };
+      }
+      const st = acc.steps[name];
+      st.items += qty;
+      st.rec = rec;
+      st.depth = Math.min(st.depth, depth);
+    }
+    return;
+  }
+  const selfIng = rec.ings.find((i) => i.n === name);
+  const selfQ = selfIng ? selfIng.q : 0;
+  const netOut = rec.out - selfQ;
+  let batches;
+  if (isRoot) batches = qty / rec.out;
+  else if (netOut > 1e-9) batches = qty / netOut;
+  else {
+    acc.warnings.push(name + " 的配方无法净产出，已停止展开");
+    return;
+  }
+  if (!acc.steps[name]) {
+    acc.steps[name] = { batches: 0, items: 0, rec, depth, order: acc.order++ };
+  }
+  const st = acc.steps[name];
+  st.batches += batches;
+  st.items += qty;
+  st.depth = Math.min(st.depth, depth);
+  if (selfQ) st.recycle = (st.recycle || 0) + batches * selfQ;
+  acc.flows[name] = (acc.flows[name] || 0) + qty;
+
+  rec.ings.forEach((ing) => {
+    if (ing.n === name) return;
+    expandLine(ing.n, batches * ing.q, false, acc, depth + 1);
+  });
+}
+
+function computeLine(name, targetItems) {
+  const acc = { steps: {}, raws: {}, flows: {}, warnings: [], order: 0 };
+  const rec = pickRec(name);
+  if (!rec) return acc;
+  const qty = (Number.isFinite(targetItems) && targetItems > 0) ? targetItems : rec.rate * rec.out;
+  expandLine(name, qty, true, acc, 0);
+  return acc;
+}
+
+function stepNote(name, st, info) {
+  const rec = st.rec;
+  if (rec.collect) {
+    const c = collectOf(name);
+    const alts = (byName[name] || { recipes: [] }).recipes.filter((r) => !r.collect).map((r) => r.label);
+    return c.label + "（" + c.mach + "）· 不占制造设备" + (alts.length ? "；可切" + alts.join(" / ") : "");
+  }
+  const bits = [];
+  if (rec.out > 1) bits.push("每份出 " + fmtNum(rec.out) + " 个");
+  if (info.note && info.note !== "—") bits.push(info.note === "满速" ? "每台 " + fmtNum(rec.rate * rec.out) + "/分满速" : info.note);
+  const consume = rec.ings.filter((i) => i.n !== name).map((i) => i.n + " " + fmtNum(st.batches * i.q) + "/分");
+  if (consume.length) bits.push("耗" + consume.join("、"));
+  if (st.recycle) bits.push(name + " " + fmtNum(st.recycle) + "/分自循环");
+  if (rec.co && rec.co.length) {
+    bits.push("副产" + rec.co.map((c) => c.n + " " + fmtNum(st.batches * c.q) + "/分").join("、"));
+  }
+  const item = byName[name];
+  if (item && item.recipes.length > 1) bits.push("路径：" + rec.label);
+  return bits.join("；");
+}
+
+function setTarget(v, dirty) {
+  targetRate = v;
+  targetDirty = !!dirty;
+  const inp = document.getElementById("targetRate");
+  if (inp && document.activeElement !== inp) inp.value = fmtNum(activeTarget());
+}
+
+function onTargetInput() {
+  const inp = document.getElementById("targetRate");
+  if (!inp) return;
+  const v = parseFloat(inp.value);
+  if (!Number.isFinite(v) || v <= 0) return;
+  targetDirty = true;
+  targetRate = v;
+  fillTargetMeta();
+  fillLineResult();
+  fillGraph();
+}
+
+function fillTargetMeta() {
+  const rec = pickRec(current);
+  const eq = document.getElementById("targetEq");
+  const presets = document.getElementById("targetPresets");
+  if (!rec || !eq || !presets) return;
+  const full = defaultTarget();
+  const tgt = activeTarget();
+  const n = tgt / full;
+  eq.textContent = rec.collect
+    ? `${collectOf(current).label}（${collectOf(current).mach}）· 需求 ${fmtNum(tgt)} 个/分 · 不占制造设备`
+    : current === "有机晶体"
+      ? `自动化方式二：化工合成（塑料×2 + 精炼油×1 + 水×1）· 1 台满速 ${fmtNum(full)} 个/分 · 当前约 ${fmtNum(n)} 台`
+      : `1 台基准机满速 ${fmtNum(full)} 个/分 · 当前约 ${fmtNum(n)} 台`;
+  presets.innerHTML = [1, 2, 5, 10].map((m) => {
+    const val = full * m;
+    const on = Math.abs(tgt - val) < 1e-6 * Math.max(1, val);
+    return `<button type="button" class="${on ? "on" : ""}" data-mul="${m}">${m}× 满速</button>`;
+  }).join("");
+  presets.querySelectorAll("button").forEach((b) => {
+    b.onclick = () => {
+      const mul = +b.dataset.mul;
+      setTarget(defaultTarget() * mul, mul !== 1);
+      const inp = document.getElementById("targetRate");
+      if (inp) inp.value = fmtNum(activeTarget());
+      fillTargetMeta();
+      fillLineResult();
+      fillGraph();
+    };
+  });
+}
+
+function ensureLineShell() {
+  const box = document.getElementById("line");
+  if (box.dataset.item === current && box.querySelector("#targetRate")) return;
+  box.dataset.item = current;
+  box.innerHTML = `
+    <h2>满速产线条件</h2>
+    <p class="assum">1× 速度（制造台 Mk.I / 电弧熔炉等基准机）· 硅石可直接获取 · 有机晶体可<strong style="color:var(--ink);font-weight:650">矿物采集</strong> · 氢/重氢可<strong style="color:var(--ink);font-weight:650">轨道采集</strong></p>
+    <div class="target-row">
+      <label for="targetRate">目标产量</label>
+      <input id="targetRate" type="number" min="0.001" step="any" />
+      <span class="unit">个/分</span>
+      <div class="presets" id="targetPresets"></div>
+    </div>
+    <p class="target-eq" id="targetEq"></p>
+    <div id="lineResult"></div>
+  `;
+  const inp = document.getElementById("targetRate");
+  inp.value = fmtNum(activeTarget());
+  inp.addEventListener("input", onTargetInput);
+  inp.addEventListener("change", onTargetInput);
+}
+
+function fillLineResult() {
+  const dest = document.getElementById("lineResult");
+  if (!dest) return;
+  if (rawSet.has(current) && !byName[current]) return;
+  const rec = pickRec(current);
+  if (rec && rec.collect) {
+    const outRate = activeTarget();
+    const c = collectOf(current);
+    const alts = (byName[current] || { recipes: [] }).recipes.filter((r) => !r.collect);
+    const altTip = current === "有机晶体"
+      ? "另一条自动化：切换「化工合成」= 塑料×2 + 精炼油×1 + 水×1，化工厂 10 个/分。"
+      : (alts.length ? "其他自动化：切换 " + alts.map((r) => "「" + r.label + "」").join("、") + "。" : "");
+    dest.innerHTML = `
+      <div class="kpis">
+        <div class="kpi"><div class="k">目标产出</div><div class="v"><em>${fmtNum(outRate)}</em> 个/分</div></div>
+        <div class="kpi wide"><div class="k">自动化方式</div><div class="v">${c.label}（${c.mach}）</div></div>
+        <div class="kpi"><div class="k">制造机器</div><div class="v"><em>0</em> 台</div></div>
+      </div>
+      <div class="sum">原料需求（/分）</div>
+      <div class="raws"><span class="raw-chip">${current} ${fmtNum(outRate)}/分</span></div>
+      <ul class="tips">
+        <li>${c.src}达标：${current} ≥ ${fmtNum(outRate)}/分。</li>
+        ${altTip ? `<li>${altTip}</li>` : ""}
+      </ul>
+      ${manualNoteHtml(current)}
+    `;
+    return;
+  }
+  const outRate = activeTarget();
+  const batches = outRate / rec.out;
+  const acc = computeLine(current, outRate);
+  const rows = Object.entries(acc.steps).map(([name, st]) => {
+    const mach = machineOf(name, st.rec);
+    const info = machineInfo(st.batches / st.rec.rate);
+    return { name, st, mach, info };
+  });
+  rows.sort((a, b) => {
+    if (a.name === current) return -1;
+    if (b.name === current) return 1;
+    if (a.st.depth !== b.st.depth) return a.st.depth - b.st.depth;
+    const ra = MACH_RANK[a.mach] ?? 9, rb = MACH_RANK[b.mach] ?? 9;
+    if (ra !== rb) return ra - rb;
+    return a.st.order - b.st.order;
+  });
+
+  const machCount = {};
+  let total = 0, allFull = true;
+  rows.forEach((r) => {
+    if (r.st.rec.collect || r.info.count < 1e-9) return;
+    machCount[r.mach] = (machCount[r.mach] || 0) + r.info.count;
+    total += r.info.count;
+    if (r.info.n != null && Math.abs(r.info.n - r.info.count) > 1e-6 && Math.abs(r.info.n - Math.round(r.info.n)) > 1e-6) {
+      allFull = false;
+    }
+    if (r.info.note && r.info.note.includes("负载")) allFull = false;
+  });
+  const machParts = Object.entries(machCount)
+    .sort((a, b) => (MACH_RANK[a[0]] ?? 9) - (MACH_RANK[b[0]] ?? 9))
+    .map(([m, n]) => n + " " + (MACH_SHORT[m] || m));
+
+  const direct = rec.ings.map((ing) => ing.n + " " + fmtNum(batches * ing.q) + "/分").join(" + ");
+  const raws = Object.entries(acc.raws).sort((a, b) => b[1] - a[1]);
+  const flows = Object.entries(acc.flows).sort((a, b) => b[1] - a[1]);
+  const thick = flows.filter(([, v]) => v >= 60).slice(0, 8);
+
+  const tableRows = rows.map((r) => {
+    const dual = byName[r.name] && byName[r.name].recipes.length > 1 && r.name !== current
+      ? `<div class="picks">${byName[r.name].recipes.map((p, i) =>
+          `<button class="${i === recIndex(r.name) ? "on" : ""}" data-up="${r.name}" data-i="${i}">${p.label}</button>`
+        ).join("")}</div>`
+      : "";
+    return `<tr class="${r.name === current ? "root" : ""}">
+      <td>${r.name}${dual}</td>
+      <td class="need">${fmtNum(r.st.items)}/分</td>
+      <td class="mach">${r.st.rec.collect ? collectOf(r.name).mach : r.info.count + " 台" + r.mach}</td>
+      <td class="note">${stepNote(r.name, r.st, r.info)}</td>
+    </tr>`;
+  }).join("");
+
+  const rawHtml = raws.length
+    ? `<div class="raws">${raws.map(([n, v]) => `<span class="raw-chip">${n} ${fmtNum(v)}/分</span>`).join("")}</div>`
+    : `<p class="warn">无需采集原料（可能全部来自循环或已视为中间体）。</p>`;
+
+  const tipItems = [];
+  if (thick.length) {
+    const top = thick[0];
+    tipItems.push(`最粗物流：<b>${top[0]} ${fmtNum(top[1])}/分</b>` + (top[1] > 360 ? "（超过传送带 Mk.I 的 360/分，需 Mk.II/多条带）" : top[1] > 180 ? "（较吃带宽，建议独立皮带）" : ""));
+    const rest = thick.slice(1).map(([n, v]) => n + " " + fmtNum(v) + "/分");
+    if (rest.length) tipItems.push("其他主带：" + rest.join("、"));
+  }
+  if (raws.length) {
+    tipItems.push("矿点/采集达标：" + raws.map(([n, v]) => n + " ≥ " + fmtNum(v) + "/分").join("、"));
+  }
+  tipItems.push("成品端持续被取走，否则背压降速；各环节按上表流量供料，不缺料。");
+  tipItems.push("使用制造台 Mk.II / Mk.III 或增产剂时，机器数按倍率折算，原料总量不变。");
+
+  if (current === "有机晶体") {
+    tipItems.unshift("另一条自动化：切换上方「矿物采集」，采矿机直接开采矿脉，无需塑料 / 精炼油 / 水。");
+  }
+
+  dest.innerHTML = `
+    <div class="kpis">
+      <div class="kpi"><div class="k">目标产出</div><div class="v"><em>${fmtNum(outRate)}</em> 个/分</div></div>
+      <div class="kpi wide"><div class="k">${current === "有机晶体" ? "化工配方" : "直接需求"}</div><div class="v">${direct || "—"}</div></div>
+      <div class="kpi"><div class="k">机器合计</div><div class="v"><em>${total}</em> 台</div></div>
+    </div>
+    ${acc.warnings.length ? `<p class="warn">${acc.warnings.join("；")}</p>` : ""}
+    <div class="line-scroll">
+      <table class="line-table">
+        <thead><tr><th>环节</th><th>需供物料</th><th>机器数</th><th>说明</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div class="sum">合计 <b>${total} 台机器</b>（${machParts.join(" + ")}）${allFull ? "，全部满负荷。" : "。"}</div>
+    <div class="sum">原料需求（/分）</div>
+    ${rawHtml}
+    <ul class="tips">${tipItems.map((t) => `<li>${t}</li>`).join("")}</ul>
+    ${manualNoteHtml(current)}
+  `;
+  dest.querySelectorAll("[data-up]").forEach((b) => {
+    b.onclick = () => {
+      upstreamPick[b.dataset.up] = +b.dataset.i;
+      fillLineResult();
+      fillGraph();
+    };
+  });
+}
+
+function renderLine() {
+  const box = document.getElementById("line");
+  if (rawSet.has(current) && !byName[current]) {
+    box.innerHTML = "";
+    box.dataset.item = "";
+    return;
+  }
+  ensureLineShell();
+  const inp = document.getElementById("targetRate");
+  if (inp && document.activeElement !== inp) inp.value = fmtNum(activeTarget());
+  fillTargetMeta();
+  fillLineResult();
+}
+
+function renderCats() {
+  const box = document.getElementById("cats");
+  box.innerHTML = "";
+  ["全部", ...DATA.categories].forEach((c) => {
+    const b = document.createElement("button");
+    b.className = "cat" + (c === cat ? " on" : "");
+    b.textContent = c;
+    b.onclick = () => { cat = c; renderCats(); renderList(); };
+    box.appendChild(b);
+  });
+}
+
+function matches(name) {
+  const q = document.getElementById("q").value.trim();
+  return !q || name.includes(q);
+}
+
+function renderList() {
+  const box = document.getElementById("list");
+  box.innerHTML = "";
+  const rows = [];
+  const seen = new Set();
+  if (cat === "全部" || cat === "原料采集") {
+    DATA.raws.filter(matches).forEach((n) => {
+      seen.add(n);
+      rows.push({ name: n, kind: byName[n] ? "both" : "raw" });
+    });
+  }
+  DATA.items.filter((it) => matches(it.name) && !seen.has(it.name) && (cat === "全部" || it.cat === cat)).forEach((it) => {
+    rows.push({ name: it.name, kind: it.recipes.length > 1 ? "dual" : "craft" });
+  });
+  if (!rows.length) { box.innerHTML = '<div class="empty">没有匹配</div>'; return; }
+  rows.forEach((r) => {
+    const b = document.createElement("button");
+    b.className = "item" + (r.name === current ? " on" : "");
+    const tag = r.kind === "raw" ? "采集" : r.kind === "both" ? "双路径" : r.kind === "dual" ? "双路径" : "";
+    b.innerHTML = `<span>${r.name}</span><small>${tag}</small>`;
+    b.onclick = () => select(r.name, true);
+    box.appendChild(b);
+  });
+}
+
+function select(name, push) {
+  if (push && current && current !== name) hist.push(current);
+  current = name;
+  pathIdx = defaultPath(name);
+  upstreamPick = {};
+  targetDirty = false;
+  targetRate = 0;
+  renderList();
+  draw();
+}
+
+function elbow(x1,y1,x2,y2) {
+  const mx = (x1 + x2) / 2, r = 10;
+  if (Math.abs(y2 - y1) < 2) return `M ${x1} ${y1} H ${x2}`;
+  const dir = y2 > y1 ? 1 : -1;
+  return `M ${x1} ${y1} H ${mx - r} Q ${mx} ${y1} ${mx} ${y1 + r * dir} V ${y2 - r * dir} Q ${mx} ${y2} ${mx + r} ${y2} H ${x2}`;
+}
+
+const NW = 152, NH = 54, CG = 90, RG = 14, PAD = 24;
+
+function drawGraph(spec, opt) {
+  const nh = (opt && opt.nh) || NH;
+  const cg = (opt && opt.cg) || CG;
+  const cols = spec.cols;
+  const colH = cols.map((c) => c.length * nh + Math.max(0, c.length - 1) * RG);
+  const H = Math.max(...colH, nh) + PAD * 2;
+  const W = cols.length * NW + Math.max(0, cols.length - 1) * cg + PAD * 2;
+  const pos = {};
+  cols.forEach((col, i) => {
+    const total = col.length * nh + Math.max(0, col.length - 1) * RG;
+    let y = PAD + (H - total) / 2;
+    col.forEach((id) => { pos[id] = { x: PAD + i * (NW + cg), y }; y += nh + RG; });
+  });
+  const graph = document.createElement("div");
+  graph.className = "graph" + (opt && opt.nh ? " deep-nodes" : "");
+  graph.style.width = W + "px";
+  graph.style.height = H + "px";
+  const mid = "arr" + Math.random().toString(36).slice(2, 8);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = `<defs><marker id="${mid}" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5d7598"/></marker></defs>`;
+  spec.edges.forEach(([a,b]) => {
+    const A = pos[a], B = pos[b];
+    if (!A || !B) return;
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", elbow(A.x + NW, A.y + nh/2, B.x, B.y + nh/2));
+    p.setAttribute("fill", "none"); p.setAttribute("stroke", "#4d6488");
+    p.setAttribute("stroke-width", "1.4"); p.setAttribute("marker-end", `url(#${mid})`);
+    svg.appendChild(p);
+  });
+  graph.appendChild(svg);
+  Object.entries(spec.nodes).forEach(([id, n]) => {
+    const el = document.createElement("div");
+    el.className = "node " + (n.cls || "");
+    el.style.left = pos[id].x + "px";
+    el.style.top = pos[id].y + "px";
+    el.innerHTML = `<div class="name">${n.name}</div><div class="qty">${n.qty}</div>` + (n.tag ? `<div class="tag">${n.tag}</div>` : "");
+    if (n.title) el.title = n.title;
+    if (n.onClick) el.onclick = n.onClick;
+    else if (n.jump) el.onclick = () => select(n.jump, true);
+    else el.style.cursor = "default";
+    graph.appendChild(el);
+  });
+  return graph;
+}
+
+function isGraphLeaf(name) {
+  if (name !== current && isRawForLine(name)) return true;
+  const rec = pickRec(name);
+  return !rec || rec.collect;
+}
+
+function cycleRecipe(name) {
+  const item = byName[name];
+  if (!item || item.recipes.length < 2) return false;
+  const next = (recIndex(name) + 1) % item.recipes.length;
+  if (name === current) pathIdx = next;
+  else upstreamPick[name] = next;
+  return true;
+}
+
+function cycleRecipeAndRefresh(name) {
+  if (!cycleRecipe(name)) return;
+  if (name === current) draw();
+  else {
+    fillGraph();
+    fillLineResult();
+  }
+}
+
+function buildDeepSpec() {
+  const outRate = activeTarget();
+  const rec0 = pickRec(current);
+  if (rec0 && rec0.collect) {
+    const c = collectOf(current);
+    const dual = byName[current] && byName[current].recipes.length > 1;
+    return {
+      nodes: {
+        mine: { name: c.label, qty: c.src, cls: "raw" },
+        [current]: { name: current, qty: "×1 · " + fmtNum(outRate) + "/分", cls: "out" + (dual ? " dual" : ""), tag: dual ? "可切换 · " + c.label : "", title: dual ? "点击切换配方" : "", onClick: dual ? () => cycleRecipeAndRefresh(current) : null }
+      },
+      cols: [["mine"], [current]],
+      edges: [["mine", current]]
+    };
+  }
+  const acc = computeLine(current, outRate);
+  const rateOf = (name) => {
+    if (name === current) return outRate;
+    if (acc.steps[name]) return acc.steps[name].items;
+    return acc.raws[name] || 0;
+  };
+  const names = new Set();
+  const edges = [];
+  const visiting = new Set();
+  const visitOrder = [];
+  function walk(name) {
+    if (names.has(name)) return;
+    names.add(name);
+    visitOrder.push(name);
+    if (isGraphLeaf(name)) return;
+    if (visiting.has(name)) return;
+    visiting.add(name);
+    const rec = pickRec(name);
+    rec.ings.forEach((ing) => {
+      if (ing.n === name) return;
+      edges.push([ing.n, name]);
+      walk(ing.n);
+    });
+    visiting.delete(name);
+  }
+  walk(current);
+  const depth = {};
+  names.forEach((n) => { depth[n] = 0; });
+  let changed = true;
+  for (let i = 0; i < 48 && changed; i++) {
+    changed = false;
+    edges.forEach(([a, b]) => {
+      const need = (depth[b] || 0) + 1;
+      if ((depth[a] || 0) < need) {
+        depth[a] = need;
+        changed = true;
+      }
+    });
+  }
+  const maxD = Math.max(0, ...Object.values(depth));
+  const cols = Array.from({ length: maxD + 1 }, () => []);
+  const ord = Object.fromEntries(visitOrder.map((n, i) => [n, i]));
+  [...names].sort((a, b) => (ord[a] ?? 99) - (ord[b] ?? 99)).forEach((n) => {
+    cols[maxD - (depth[n] || 0)].push(n);
+  });
+  const nodes = {};
+  names.forEach((n) => {
+    const rec = pickRec(n);
+    const item = byName[n];
+    const leaf = isGraphLeaf(n);
+    const dual = !!(item && item.recipes.length > 1);
+    const rate = rateOf(n);
+    let qty = fmtNum(rate) + "/分";
+    if (rec && rec.collect) qty += " · " + collectOf(n).label;
+    else if (leaf && DATA.rawCats[n]) qty += " · " + DATA.rawCats[n];
+    let tag = "";
+    if (dual) tag = "可切换 · " + (rec ? rec.label : "");
+    else if (n !== current && rec && !rec.collect && rec.label && rec.label !== "合成") tag = rec.label;
+    const cls = [
+      n === current ? "out" : "",
+      n !== current && leaf ? "raw" : "",
+      dual ? "dual" : ""
+    ].filter(Boolean).join(" ");
+    nodes[n] = {
+      name: n,
+      qty,
+      tag,
+      cls,
+      title: dual ? item.recipes.map((r) => r.label).join(" / ") + "（点击切换）" : "",
+      onClick: dual ? () => cycleRecipeAndRefresh(n) : null
+    };
+  });
+  return { nodes, cols, edges };
+}
+
+function renderGraphMode() {
+  const box = document.getElementById("graphMode");
+  if (!box) return;
+  box.innerHTML = "";
+  [["一层", false], ["全部展开", true]].forEach(([lab, v]) => {
+    const b = document.createElement("button");
+    b.className = graphDeep === v ? "on" : "";
+    b.textContent = lab;
+    b.onclick = () => {
+      graphDeep = v;
+      renderGraphMode();
+      fillGraph();
+      setGraphHint();
+    };
+    box.appendChild(b);
+  });
+}
+
+function setGraphHint() {
+  const hint = document.getElementById("hint");
+  if (!hint || rawSet.has(current) && !byName[current]) return;
+  const rec = pickRec(current);
+  if (!rec) return;
+  if (graphDeep) {
+    hint.textContent = "完整路径已按当前配方展开。带「可切换」的节点可点击更换上游，产线表会同步。";
+    return;
+  }
+  if (rec.collect) {
+    const c = collectOf(current);
+    const alts = (byName[current] || { recipes: [] }).recipes.filter((r) => !r.collect).map((r) => r.label);
+    hint.textContent = current === "有机晶体"
+      ? "另有自动化「化工合成」：塑料×2 + 精炼油×1 + 水×1。种植配方只能手动，不计入产线。"
+      : (alts.length ? "也可切换 " + alts.join("、") + "。点「全部展开」可看完整路径。" : c.src + "即可自动化。");
+  } else if (current === "有机晶体") {
+    hint.textContent = "化工配方：塑料×2 + 精炼油×1 + 水×1。也可切回「矿物采集」。种植仅手动备注。";
+  } else if (rec.co && rec.co.length) {
+    hint.textContent = "该配方同时产出副产物。点「全部展开」可看完整路径；点击节点或表格可切换上游。";
+  } else {
+    hint.textContent = "点「全部展开」可一次看完整合成树。一层模式下点击节点仍会跳转该材料。";
+  }
+}
+
+function fillGraph() {
+  const hold = document.getElementById("hold");
+  hold.innerHTML = "";
+  hold.classList.toggle("deep", graphDeep);
+  if (rawSet.has(current) && !byName[current]) {
+    hold.appendChild(drawGraph({
+      nodes: { a: { name: "采集", qty: DATA.rawCats[current] || "原料", cls: "raw" }, b: { name: current, qty: "×1", cls: "out" } },
+      cols: [["a"],["b"]], edges: [["a","b"]]
+    }));
+    return;
+  }
+  if (graphDeep) {
+    hold.appendChild(drawGraph(buildDeepSpec(), { nh: 68, cg: 100 }));
+    return;
+  }
+  const rec = pickRec(current);
+  if (rec && rec.collect) {
+    const c = collectOf(current);
+    hold.appendChild(drawGraph({
+      nodes: {
+        a: { name: c.label, qty: c.src, cls: "raw" },
+        b: { name: current, qty: "×1 · " + fmtNum(activeTarget()) + "/分", cls: "out" }
+      },
+      cols: [["a"], ["b"]], edges: [["a", "b"]]
+    }));
+    return;
+  }
+  const outRate = activeTarget();
+  const batches = outRate / rec.out;
+  const outTxt = rec.out === 1 ? "×1" : `→ ${fmt(rec.out)}`;
+  const nodes = {};
+  const left = [];
+  rec.ings.forEach((ing, i) => {
+    const id = "i"+i;
+    left.push(id);
+    nodes[id] = { name: ing.n, qty: "×" + fmt(ing.q) + " · " + fmtNum(batches * ing.q) + "/分", cls: isRawForLine(ing.n) || ing.n === "硅石" ? "raw" : "", jump: ing.n };
+  });
+  const right = ["out"];
+  nodes.out = { name: current, qty: outTxt + ` · ${fmtNum(outRate)}/分`, cls: "out" };
+  const edges = left.map((id) => [id, "out"]);
+  (rec.co || []).forEach((c, i) => {
+    const id = "c"+i;
+    right.push(id);
+    nodes[id] = { name: c.n, qty: "副产 ×" + fmt(c.q) + " · " + fmtNum(batches * c.q) + "/分", cls: "by", jump: c.n };
+    left.forEach((ing) => edges.push([ing, id]));
+  });
+  hold.appendChild(drawGraph({ nodes, cols: [left, right], edges }));
+}
+
+function draw() {
+  document.getElementById("name").textContent = current;
+  const crumb = document.getElementById("crumb");
+  crumb.innerHTML = hist.slice(-6).map((n,i) => `<button data-i="${i}">${n}</button>`).join(" / ") + (hist.length ? " / " : "") + current;
+  crumb.querySelectorAll("button").forEach((b) => b.onclick = () => {
+    const i = +b.dataset.i;
+    current = hist[i];
+    hist.splice(i);
+    pathIdx = defaultPath(current);
+    upstreamPick = {};
+    targetDirty = false;
+    targetRate = 0;
+    renderList();
+    draw();
+  });
+
+  renderGraphMode();
+  if (rawSet.has(current) && !byName[current]) {
+    document.getElementById("meta").innerHTML = "天然采集，无合成配方";
+    document.getElementById("paths").innerHTML = "";
+    document.getElementById("hint").textContent = "该材料需要开采或采集。产线计算中视为原料。";
+    fillGraph();
+    renderLine();
+    return;
+  }
+
+  const item = byName[current];
+  const rec = item.recipes[pathIdx];
+  const paths = document.getElementById("paths");
+  paths.innerHTML = "";
+  if (item.recipes.length > 1) {
+    item.recipes.forEach((r, i) => {
+      const b = document.createElement("button");
+      b.className = i === pathIdx ? "on" : "";
+      b.textContent = r.label;
+      b.onclick = () => { pathIdx = i; upstreamPick = {}; draw(); };
+      paths.appendChild(b);
+    });
+  }
+  if (rec.collect) {
+    const c = collectOf(current);
+    document.getElementById("meta").innerHTML = `${c.label}：<b>${c.src}</b>，可直接获取`;
+  } else {
+    const full = rec.rate * rec.out;
+    document.getElementById("meta").innerHTML = current === "有机晶体"
+      ? `自动化方式二：化工合成　周期 <b>${rec.sec} 秒</b>　1 台满速 <b>${fmtNum(full)}/min</b>`
+      : `周期 <b>${rec.sec} 秒</b>　1 台满速 <b>${fmtNum(full)}/min</b>　每份产出 <b>${fmt(rec.out)}</b>`;
+  }
+  setGraphHint();
+  fillGraph();
+  renderLine();
+}
+
+document.getElementById("q").addEventListener("input", renderList);
+pathIdx = defaultPath(current);
+renderCats();
+renderList();
+draw();
+</script>
+</body>
+</html>
